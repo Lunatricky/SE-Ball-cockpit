@@ -42,22 +42,31 @@ namespace IngameScript
         const string VERSION = "0.1";
         const string _GroupName = "[Ball Cockpit]";
         const string _ShipControllerTag = "[Reference]";
-        const string _BankTag = "[Ball - Bank]";
+        const string _YawTag = "[Ball - Yaw]";
         const string _PitchTag = "[Ball - Pitch]";
         const string _RollTag = "[Ball - Roll]";
 
+        const float _DeadZone = 5;
+        float acceleration = 5;
+
+        float YawDemand;
+        float PitchDemand;
+        float RollDemand;
+
+
         //List<IMyTerminalBlock> Group = new List<IMyTerminalBlock>();
-        IMyBlockGroup Group;
+        //IMyBlockGroup Group;
         IMyShipController Controller;
         List<IMyTerminalBlock> Gyros = new List<IMyTerminalBlock>();
+            GyroscopeControl ControlledGyros = null;
         List<IMyTerminalBlock> Rotors = new List<IMyTerminalBlock>();
 
-        IMyTerminalBlock ShipController;
-        //IMyTerminalBlock BankRotor;
+        //IMyTerminalBlock ShipController;
+        //IMyTerminalBlock YawRotor;
         //IMyTerminalBlock PitchRotor;
         //IMyTerminalBlock RollRotor;
 
-        IMyMotorStator BankRotor;
+        IMyMotorStator YawRotor;
         IMyMotorStator PitchRotor;
         IMyMotorStator RollRotor;
 
@@ -73,7 +82,7 @@ namespace IngameScript
             GridTerminalSystem.GetBlocksOfType<IMyTerminalBlock>(null, PopulateLists);
 
             Setup();
-            Runtime.UpdateFrequency = UpdateFrequency.Update10;
+            Runtime.UpdateFrequency = UpdateFrequency.Update1;
         }
 
         public void Main(string arg, UpdateType updateSource)
@@ -82,13 +91,13 @@ namespace IngameScript
             {
 
             }
+            GyroDemand();
         }
 
         void Setup()
         {  
             
             GetRotors();
-            //GetShipController();
             GetGyros();
             GetShipOrientation();
             if (true)
@@ -113,15 +122,29 @@ namespace IngameScript
             return false;
         }
 
-        
-    public struct ShipOrientation
+        //The gyros have to inherit the class and then be initialized 
+        public GyroscopeControl InitializedGyroscopeControl
+        {
+            get
+            {
+                if (ControlledGyros == null)
+                {
+                    ControlledGyros = new GyroscopeControl();
+                    ControlledGyros.Init(Gyros, shipUp: shipOrientation.ShipUp, shipLeft: shipOrientation.ShipLeft, shipForward: shipOrientation.ShipForward);
+                }
+                return ControlledGyros;
+            }
+        }
+
+        #region Ship Orientation
+        public struct ShipOrientation
         {
             public Base6Directions.Direction ShipUp;
             public Base6Directions.Direction ShipLeft;
             public Base6Directions.Direction ShipForward;
         }
 
-    void GetShipOrientation()
+        void GetShipOrientation()
         {
             if (Controller != null)
             {
@@ -132,8 +155,173 @@ namespace IngameScript
                 shipOrientation.ShipForward = reference.Orientation.TransformDirection(Base6Directions.Direction.Forward);//0
             }
         }
+        #endregion Ship Orientation
 
-        //Reference: ZerothAngel
+        #region Get Rotors
+        void GetRotors()
+        {
+            var group = GridTerminalSystem.GetBlockGroupWithName("_GroupName");
+            if (group == null)
+            {
+                return;
+            }
+            group.GetBlocks(null, CollectRotors);
+        }
+        bool CollectRotors(IMyTerminalBlock block)
+        {
+            if (!block.IsSameConstructAs(Me))
+                return false;
+            if (block is IMyMotorStator)
+            {
+                if (StringContains(block.CustomName, _YawTag))
+                {
+                    AddRotor(block, Rotors);
+                    var v = (IMyMotorStator)block;
+                    v = YawRotor;
+                    //BankRotorDetails.rotor = YawRotor;
+                    //BankRotorDetails.angle = YawRotor.Angle;
+                }
+                if (StringContains(block.CustomName, _PitchTag))
+                {
+                    AddRotor(block, Rotors);
+                    var v = (IMyMotorStator)block;
+                    v = PitchRotor;
+                    //PitchRotorDetails.rotor = PitchRotor;
+                    //PitchRotorDetails.angle = PitchRotor.Angle;
+                }
+                if (StringContains(block.CustomName, _RollTag))
+                {
+                    AddRotor(block, Rotors);
+                    var v = (IMyMotorStator)block;
+                    v = RollRotor;
+                    //RollRotorDetails.rotor = RollRotor;
+                    //RollRotorDetails.angle = RollRotor.Angle;
+                }
+
+            }
+            return false;
+        }
+
+        void AddRotor(IMyTerminalBlock block, List<IMyTerminalBlock> rotors)
+        {
+            if(block != null)
+            {
+                rotors.Add(block);
+            }
+        }
+        #endregion Get Rotors
+
+        #region Get Gyros
+        void GetGyros()
+        {
+            var group = GridTerminalSystem.GetBlockGroupWithName("_GroupName");
+            if (group == null)
+            {
+                return;
+            }
+            group.GetBlocks(null, CollectGyros);
+        }
+
+        bool CollectGyros(IMyTerminalBlock block)
+        {
+            if (block.CubeGrid != Me)
+                return false;
+            
+            if (block is IMyGyro)
+            {
+                AddGyro(block, Gyros);
+            }
+            return false;
+        }
+    
+        void AddGyro(IMyTerminalBlock block, List<IMyTerminalBlock> gyros)
+        {
+            if(block != null)
+            {
+                gyros.Add(block);
+            }
+        }
+        #endregion Get Gyros
+
+        public void GyroDemand()
+        {
+            /*
+            public const int Yaw = 0;
+            public const int Pitch = 1;
+            public const int Roll = 2;
+
+            SetAxisVelocityRPM(int axis, float rpmVelocity)
+            */
+            GyroYawDemand();
+            GyroPitchDemand();
+            GyroRollDemand();
+
+        }
+        public void GyroYawDemand()
+        {
+            float angle = YawRotor.Angle;
+            if (angle > _DeadZone)
+            {
+                YawDemand = MathHelper.Clamp(YawDemand + acceleration, -30, 30);
+                InitializedGyroscopeControl.SetAxisVelocityRPM(0, YawDemand);
+            }
+            if (angle < -_DeadZone)
+            {
+                YawDemand = MathHelper.Clamp(YawDemand - acceleration, -30, 30);
+                InitializedGyroscopeControl.SetAxisVelocityRPM(0, YawDemand);
+            }
+        }
+
+        public void GyroPitchDemand()
+        {
+            float angle = PitchRotor.Angle;
+            if (angle > _DeadZone)
+            {
+                PitchDemand = MathHelper.Clamp(PitchDemand + acceleration, -30, 30);
+                InitializedGyroscopeControl.SetAxisVelocityRPM(1, PitchDemand);
+            }
+            if (angle < -_DeadZone)
+            {
+                PitchDemand = MathHelper.Clamp(PitchDemand - acceleration, -30, 30);
+                InitializedGyroscopeControl.SetAxisVelocityRPM(1, PitchDemand);
+            }
+        }
+
+        public void GyroRollDemand()
+        {
+            float angle = RollRotor.Angle;
+            if (angle > _DeadZone)
+            {
+                RollDemand = MathHelper.Clamp(RollDemand + acceleration, -30, 30);
+                InitializedGyroscopeControl.SetAxisVelocityRPM(0, RollDemand);
+            }
+            if (angle < -_DeadZone)
+            {
+                RollDemand = MathHelper.Clamp(RollDemand - acceleration, -30, 30);
+                InitializedGyroscopeControl.SetAxisVelocityRPM(0, RollDemand);
+            }
+        }
+
+
+        struct ControllerDirection
+        {
+            public IMyShipController controller;
+            public float yaw;
+            public float pitch;
+            public float roll;
+        }
+
+        /*
+        struct Rotor
+        {
+            public IMyMotorStator rotor;
+            //public string name;
+            public float angle;
+        }
+        */
+
+            #region GyroscopeControl Class
+            //Reference: ZerothAngel
         public class GyroscopeControl
         {
             public const int Yaw = 0;
@@ -251,7 +439,7 @@ namespace IngameScript
             }
             public void EnableOverride(bool enable)
             {
-                foreach(Gyroscope gyro in controlledGyroscopes)
+                foreach (Gyroscope gyro in controlledGyroscopes)
                 {
                     gyro.Gyro.SetValue<bool>("Override", enable);
                 }
@@ -259,7 +447,7 @@ namespace IngameScript
 
             public void SetAxisVelocity(int axis, float velocity)
             {
-                foreach(Gyroscope gyro in controlledGyroscopes)
+                foreach (Gyroscope gyro in controlledGyroscopes)
                 {
                     gyro.Gyro.SetValue<float>(AxisNames[gyro.AxisInfo[axis].LocalAxis], gyro.AxisInfo[axis].Sign * velocity);
                 }
@@ -272,133 +460,16 @@ namespace IngameScript
 
             public void Reset()
             {
-                foreach(Gyroscope gyro in controlledGyroscopes)
+                foreach (Gyroscope gyro in controlledGyroscopes)
                 {
                     gyro.Gyro.SetValue<float>("Yaw", 0.0f);
                     gyro.Gyro.SetValue<float>("Pitch", 0.0f);
                     gyro.Gyro.SetValue<float>("Roll", 0.0f);
-                } 
-            }
-        }
-
-        #region Get Rotors
-        void GetRotors()
-        {
-            var group = GridTerminalSystem.GetBlockGroupWithName("_GroupName");
-            if (group == null)
-            {
-                return;
-            }
-            group.GetBlocks(null, CollectRotors);
-        }
-        bool CollectRotors(IMyTerminalBlock block)
-        {
-            if (!block.IsSameConstructAs(Me))
-                return false;
-            if (block is IMyMotorStator)
-            {
-                if (StringContains(block.CustomName, _BankTag))
-                {
-                    AddRotor(block, Rotors);
-                    var v = (IMyMotorStator)block;
-                    v = BankRotor;
-                    //BankRotorDetails.rotor = BankRotor;
-                    //BankRotorDetails.angle = BankRotor.Angle;
                 }
-                if (StringContains(block.CustomName, _PitchTag))
-                {
-                    AddRotor(block, Rotors);
-                    var v = (IMyMotorStator)block;
-                    v = PitchRotor;
-                    //PitchRotorDetails.rotor = PitchRotor;
-                    //PitchRotorDetails.angle = PitchRotor.Angle;
-                }
-                if (StringContains(block.CustomName, _RollTag))
-                {
-                    AddRotor(block, Rotors);
-                    var v = (IMyMotorStator)block;
-                    v = RollRotor;
-                    //RollRotorDetails.rotor = RollRotor;
-                    //RollRotorDetails.angle = RollRotor.Angle;
-                }
-
-            }
-            return false;
-        }
-
-        void AddRotor(IMyTerminalBlock block, List<IMyTerminalBlock> rotors)
-        {
-            if(block != null)
-            {
-                rotors.Add(block);
             }
         }
-        #endregion Get Rotors
+        #endregion GyroscopeControl Class
 
-        #region Get Gyros
-        void GetGyros()
-        {
-            var group = GridTerminalSystem.GetBlockGroupWithName("_GroupName");
-            if (group == null)
-            {
-                return;
-            }
-            group.GetBlocks(null, CollectGyros);
-        }
-
-        bool CollectGyros(IMyTerminalBlock block)
-        {
-            if (block.CubeGrid != Me)
-                return false;
-            
-            if (block is IMyGyro)
-            {
-                AddGyro(block, Gyros);
-            }
-            return false;
-        }
-    
-        void AddGyro(IMyTerminalBlock block, List<IMyTerminalBlock> gyros)
-        {
-            if(block != null)
-            {
-                gyros.Add(block);
-            }
-        }
-        #endregion Get Gyros
-
-        public float GetBank()
-        {
-            return BankRotor.Angle;
-        }
-
-        public float GetPitch()
-        {
-            return PitchRotor.Angle;
-        }
-
-        public float GetRoll()
-        {
-            return RollRotor.Angle;
-        }
-
-
-        struct ControllerDirection
-        {
-            public IMyShipController controller;
-            public float bank;
-            public float pitch;
-            public float roll;
-        }
-
-        /*
-        struct Rotor
-        {
-            public IMyMotorStator rotor;
-            //public string name;
-            public float angle;
-        }
-        */
 
         #region Tools
 
