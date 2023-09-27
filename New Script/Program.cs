@@ -30,6 +30,9 @@ namespace IngameScript
          * Set up gyro controller
          * Set up rotor angle interpretation
          * 
+         * Throttle System
+         * Smart thrust cut off
+         * 
          * 
          */
 
@@ -58,10 +61,12 @@ namespace IngameScript
         IMyMotorStator PitchRotor;
         IMyMotorStator RollRotor;
 
+        ShipOrientation shipOrientation = new ShipOrientation();
+
         //Rotor BankRotorDetails = new Rotor();
         //Rotor PitchRotorDetails = new Rotor();
         //Rotor RollRotorDetails = new Rotor();
-      
+
 
         public Program()
         {
@@ -85,6 +90,7 @@ namespace IngameScript
             GetRotors();
             //GetShipController();
             GetGyros();
+            GetShipOrientation();
             if (true)
             {
 
@@ -105,6 +111,174 @@ namespace IngameScript
                 block = Controller;
             }
             return false;
+        }
+
+        
+    public struct ShipOrientation
+        {
+            public Base6Directions.Direction ShipUp;
+            public Base6Directions.Direction ShipLeft;
+            public Base6Directions.Direction ShipForward;
+        }
+
+    void GetShipOrientation()
+        {
+            if (Controller != null)
+            {
+                IMyShipController reference;
+                reference = Controller;
+                shipOrientation.ShipUp = reference.Orientation.TransformDirection(Base6Directions.Direction.Up);//4
+                shipOrientation.ShipLeft = reference.Orientation.TransformDirection(Base6Directions.Direction.Left);//2
+                shipOrientation.ShipForward = reference.Orientation.TransformDirection(Base6Directions.Direction.Forward);//0
+            }
+        }
+
+        //Reference: ZerothAngel
+        public class GyroscopeControl
+        {
+            public const int Yaw = 0;
+            public const int Pitch = 1;
+            public const int Roll = 2;
+
+            public readonly string[] AxisNames = new string[] { "Yaw", "Pitch", "Roll" };
+            public struct GyroscopeAxis
+            {
+
+
+                public int LocalAxis;
+                public int Sign;
+
+                public GyroscopeAxis(int localAxis, int sign)
+                {
+                    LocalAxis = localAxis;
+                    Sign = sign;
+                }
+            }
+            public struct Gyroscope
+            {
+                public IMyGyro Gyro;
+                public GyroscopeAxis[] AxisInfo;
+
+                public Gyroscope(IMyGyro gyro, Base6Directions.Direction shipUp, Base6Directions.Direction shipLeft, Base6Directions.Direction shipForward)
+                {
+                    Gyro = gyro;
+                    AxisInfo = new GyroscopeAxis[3];
+
+                    // Determine yaw axis
+                    switch (gyro.Orientation.TransformDirectionInverse(shipUp))
+                    {
+                        case Base6Directions.Direction.Up:
+                            AxisInfo[Yaw] = new GyroscopeAxis(Yaw, -1);
+                            break;
+                        case Base6Directions.Direction.Down:
+                            AxisInfo[Yaw] = new GyroscopeAxis(Yaw, 1);
+                            break;
+                        case Base6Directions.Direction.Left:
+                            AxisInfo[Yaw] = new GyroscopeAxis(Pitch, 1);
+                            break;
+                        case Base6Directions.Direction.Right:
+                            AxisInfo[Yaw] = new GyroscopeAxis(Pitch, -1);
+                            break;
+                        case Base6Directions.Direction.Forward:
+                            AxisInfo[Yaw] = new GyroscopeAxis(Roll, 1);
+                            break;
+                        case Base6Directions.Direction.Backward:
+                            AxisInfo[Yaw] = new GyroscopeAxis(Roll, -1);
+                            break;
+                    }
+                    // Determine pitch axis
+                    switch (gyro.Orientation.TransformDirectionInverse(shipLeft))
+                    {
+                        case Base6Directions.Direction.Up:
+                            AxisInfo[Pitch] = new GyroscopeAxis(Yaw, -1);
+                            break;
+                        case Base6Directions.Direction.Down:
+                            AxisInfo[Pitch] = new GyroscopeAxis(Yaw, 1);
+                            break;
+                        case Base6Directions.Direction.Left:
+                            AxisInfo[Pitch] = new GyroscopeAxis(Pitch, -1);
+                            break;
+                        case Base6Directions.Direction.Right:
+                            AxisInfo[Pitch] = new GyroscopeAxis(Pitch, 1);
+                            break;
+                        case Base6Directions.Direction.Forward:
+                            AxisInfo[Pitch] = new GyroscopeAxis(Roll, 1);
+                            break;
+                        case Base6Directions.Direction.Backward:
+                            AxisInfo[Pitch] = new GyroscopeAxis(Roll, -1);
+                            break;
+                    }
+
+                    // Determine roll axis
+                    switch (gyro.Orientation.TransformDirectionInverse(shipForward))
+                    {
+                        case Base6Directions.Direction.Up:
+                            AxisInfo[Roll] = new GyroscopeAxis(Yaw, -1);
+                            break;
+                        case Base6Directions.Direction.Down:
+                            AxisInfo[Roll] = new GyroscopeAxis(Yaw, 1);
+                            break;
+                        case Base6Directions.Direction.Left:
+                            AxisInfo[Roll] = new GyroscopeAxis(Pitch, -1);
+                            break;
+                        case Base6Directions.Direction.Right:
+                            AxisInfo[Roll] = new GyroscopeAxis(Pitch, 1);
+                            break;
+                        case Base6Directions.Direction.Forward:
+                            AxisInfo[Roll] = new GyroscopeAxis(Roll, 1);
+                            break;
+                        case Base6Directions.Direction.Backward:
+                            AxisInfo[Roll] = new GyroscopeAxis(Roll, -1);
+                            break;
+                    }
+                }
+            }
+            private readonly List<Gyroscope> controlledGyroscopes = new List<Gyroscope>();
+
+            //Link Credit:
+            public void Init(IEnumerable<IMyTerminalBlock> blocks, Func<IMyGyro, bool> collect = null, Base6Directions.Direction shipUp = Base6Directions.Direction.Up, Base6Directions.Direction shipLeft = Base6Directions.Direction.Left, Base6Directions.Direction shipForward = Base6Directions.Direction.Forward)
+            {
+                controlledGyroscopes.Clear();
+                for (var e = blocks.GetEnumerator(); e.MoveNext();)
+                {
+                    var gyro = e.Current as IMyGyro;
+                    if (gyro != null && gyro.IsFunctional && gyro.IsWorking && gyro.Enabled && (collect == null || collect(gyro)))
+                    {
+                        var details = new Gyroscope(gyro, shipUp, shipLeft, shipForward);
+                        controlledGyroscopes.Add(details);
+                    }
+                }
+            }
+            public void EnableOverride(bool enable)
+            {
+                foreach(Gyroscope gyro in controlledGyroscopes)
+                {
+                    gyro.Gyro.SetValue<bool>("Override", enable);
+                }
+            }
+
+            public void SetAxisVelocity(int axis, float velocity)
+            {
+                foreach(Gyroscope gyro in controlledGyroscopes)
+                {
+                    gyro.Gyro.SetValue<float>(AxisNames[gyro.AxisInfo[axis].LocalAxis], gyro.AxisInfo[axis].Sign * velocity);
+                }
+            }
+
+            public void SetAxisVelocityRPM(int axis, float rpmVelocity)
+            {
+                SetAxisVelocity(axis, rpmVelocity * MathHelper.RPMToRadiansPerSecond);
+            }
+
+            public void Reset()
+            {
+                foreach(Gyroscope gyro in controlledGyroscopes)
+                {
+                    gyro.Gyro.SetValue<float>("Yaw", 0.0f);
+                    gyro.Gyro.SetValue<float>("Pitch", 0.0f);
+                    gyro.Gyro.SetValue<float>("Roll", 0.0f);
+                } 
+            }
         }
 
         #region Get Rotors
