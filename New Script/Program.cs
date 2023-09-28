@@ -294,12 +294,12 @@ namespace IngameScript
             if (angle > _DeadZone)
             {
                 RollDemand = MathHelper.Clamp(RollDemand + acceleration, -30, 30);
-                InitializedGyroscopeControl.SetAxisVelocityRPM(0, RollDemand);
+                InitializedGyroscopeControl.SetAxisVelocityRPM(2, RollDemand);
             }
             if (angle < -_DeadZone)
             {
                 RollDemand = MathHelper.Clamp(RollDemand - acceleration, -30, 30);
-                InitializedGyroscopeControl.SetAxisVelocityRPM(0, RollDemand);
+                InitializedGyroscopeControl.SetAxisVelocityRPM(2, RollDemand);
             }
         }
 
