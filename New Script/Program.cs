@@ -117,7 +117,7 @@ namespace IngameScript
                 return false;
             if (StringContains(block.CustomName, _ShipControllerTag))
             {
-                block = Controller;
+                Controller = (IMyShipController)block;
             }
             return false;
         }
@@ -160,7 +160,7 @@ namespace IngameScript
         #region Get Rotors
         void GetRotors()
         {
-            var group = GridTerminalSystem.GetBlockGroupWithName("_GroupName");
+            var group = GridTerminalSystem.GetBlockGroupWithName(_GroupName);
             if (group == null)
             {
                 return;
@@ -177,7 +177,7 @@ namespace IngameScript
                 {
                     AddRotor(block, Rotors);
                     var v = (IMyMotorStator)block;
-                    v = YawRotor;
+                    YawRotor = v;
                     //BankRotorDetails.rotor = YawRotor;
                     //BankRotorDetails.angle = YawRotor.Angle;
                 }
@@ -185,7 +185,7 @@ namespace IngameScript
                 {
                     AddRotor(block, Rotors);
                     var v = (IMyMotorStator)block;
-                    v = PitchRotor;
+                    PitchRotor = v;
                     //PitchRotorDetails.rotor = PitchRotor;
                     //PitchRotorDetails.angle = PitchRotor.Angle;
                 }
@@ -193,7 +193,7 @@ namespace IngameScript
                 {
                     AddRotor(block, Rotors);
                     var v = (IMyMotorStator)block;
-                    v = RollRotor;
+                    RollRotor = v;
                     //RollRotorDetails.rotor = RollRotor;
                     //RollRotorDetails.angle = RollRotor.Angle;
                 }
@@ -259,7 +259,8 @@ namespace IngameScript
         }
         public void GyroYawDemand()
         {
-            float angle = YawRotor.Angle;
+            
+            float angle = YawRotor.Angle * 180 / MathHelper.Pi;
             if (angle > _DeadZone)
             {
                 YawDemand = MathHelper.Clamp(YawDemand + acceleration, -30, 30);
@@ -274,7 +275,7 @@ namespace IngameScript
 
         public void GyroPitchDemand()
         {
-            float angle = PitchRotor.Angle;
+            float angle = PitchRotor.Angle * 180 / MathHelper.Pi;
             if (angle > _DeadZone)
             {
                 PitchDemand = MathHelper.Clamp(PitchDemand + acceleration, -30, 30);
@@ -289,7 +290,7 @@ namespace IngameScript
 
         public void GyroRollDemand()
         {
-            float angle = RollRotor.Angle;
+            float angle = RollRotor.Angle * 180 / MathHelper.Pi;
             if (angle > _DeadZone)
             {
                 RollDemand = MathHelper.Clamp(RollDemand + acceleration, -30, 30);
@@ -447,7 +448,7 @@ namespace IngameScript
 
             public void SetAxisVelocity(int axis, float velocity)
             {
-                foreach (Gyroscope gyro in controlledGyroscopes)
+                foreach (Gyroscope gyro in  )
                 {
                     gyro.Gyro.SetValue<float>(AxisNames[gyro.AxisInfo[axis].LocalAxis], gyro.AxisInfo[axis].Sign * velocity);
                 }
