@@ -58,6 +58,9 @@ namespace IngameScript
         const float PitchDemandSign = 1;
         const float RollDemandSign = 1;
 
+        const float MaxRotationSpeed = 30;
+        const float MinRotationSpeed = -30;
+
         float YawDemand;
         float PitchDemand;
         float RollDemand;
@@ -285,13 +288,13 @@ namespace IngameScript
             if (angle > 0 + _DeadZone && angle < 180)
             {
                 //YawDemand = baseVelocity * YawDemandSign;
-                YawDemand = MathHelper.Clamp(YawDemand + acceleration * YawDemandSign, -30, 30);
+                YawDemand = MathHelper.Clamp(YawDemand + acceleration * YawDemandSign, MinRotationSpeed, MaxRotationSpeed);
                 InitializedGyroscopeControl.SetAxisVelocityRPM(0, YawDemand * MathHelper.RadiansPerSecondToRPM);
             }
             else if (angle < 360 - _DeadZone && angle > 180)
             {
                 //YawDemand = -baseVelocity * YawDemandSign;
-                YawDemand = MathHelper.Clamp(YawDemand - acceleration * YawDemandSign, -30, 30);
+                YawDemand = MathHelper.Clamp(YawDemand - acceleration * YawDemandSign, MinRotationSpeed, MaxRotationSpeed);
                 InitializedGyroscopeControl.SetAxisVelocityRPM(0, YawDemand * MathHelper.RadiansPerSecondToRPM);
             }
             else
@@ -307,14 +310,14 @@ namespace IngameScript
             if (angle > 0 + _DeadZone && angle < 180)
             {
                 //PitchDemand = baseVelocity * PitchDemandSign;
-                PitchDemand = MathHelper.Clamp(PitchDemand + acceleration * PitchDemandSign, -30, 30);
+                PitchDemand = MathHelper.Clamp(PitchDemand + acceleration * PitchDemandSign, MinRotationSpeed, MaxRotationSpeed);
                 InitializedGyroscopeControl.SetAxisVelocityRPM(1, PitchDemand * MathHelper.RadiansPerSecondToRPM);
 
             }
             else if (angle < 360 - _DeadZone && angle > 180)
             {
                 //PitchDemand = -baseVelocity * PitchDemandSign;
-                PitchDemand = MathHelper.Clamp(PitchDemand - acceleration * PitchDemandSign, -30, 30);
+                PitchDemand = MathHelper.Clamp(PitchDemand - acceleration * PitchDemandSign, MinRotationSpeed, MaxRotationSpeed);
                 InitializedGyroscopeControl.SetAxisVelocityRPM(1, PitchDemand * MathHelper.RadiansPerSecondToRPM);
             }
             else
@@ -330,13 +333,13 @@ namespace IngameScript
             if (angle > 0 + _DeadZone && angle < 180)
             {
                 //RollDemand = baseVelocity * RollDemandSign;
-                RollDemand = MathHelper.Clamp(RollDemand + acceleration * RollDemandSign, -30, 30);
+                RollDemand = MathHelper.Clamp(RollDemand + acceleration * RollDemandSign, MinRotationSpeed, MaxRotationSpeed);
                 InitializedGyroscopeControl.SetAxisVelocityRPM(2, RollDemand * MathHelper.RadiansPerSecondToRPM);
             }
             else if (angle < 360 - _DeadZone && angle > 180)
             {
                 //RollDemand = -baseVelocity * RollDemandSign;
-                RollDemand = MathHelper.Clamp(RollDemand - acceleration * RollDemandSign, -30, 30);
+                RollDemand = MathHelper.Clamp(RollDemand - acceleration * RollDemandSign, MinRotationSpeed, MaxRotationSpeed);
                 InitializedGyroscopeControl.SetAxisVelocityRPM(2, RollDemand * MathHelper.RadiansPerSecondToRPM);
             }
             else
