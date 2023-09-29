@@ -276,32 +276,32 @@ namespace IngameScript
 
             SetAxisVelocityRPM(int axis, float rpmVelocity)
             */
-            GyroDirectionDemand(YawRotor, YawDemand, YawDemandSign);
-            GyroDirectionDemand(PitchRotor, PitchDemand, PitchDemandSign);
-            GyroDirectionDemand(RollRotor, RollDemand, RollDemandSign);
+            GyroRotationDemand(0, YawRotor, YawDemand, YawDemandSign);
+            GyroRotationDemand(1, PitchRotor, PitchDemand, PitchDemandSign);
+            GyroRotationDemand(2, RollRotor, RollDemand, RollDemandSign);
 
         }
 
-        public void GyroDirectionDemand(IMyMotorStator rotor, float directionDemand, float directionDemandSign)
+        public void GyroRotationDemand(int axis, IMyMotorStator rotor, float directionDemand, float directionDemandSign)
         {
             float angle = RotorAngle(rotor);
             if (angle > 0 + _DeadZone && angle < 180)
             {
                 //PitchDemand = baseVelocity * PitchDemandSign;
                 directionDemand = MathHelper.Clamp(directionDemand + acceleration * directionDemandSign, MinRotationSpeed, MaxRotationSpeed);
-                InitializedGyroscopeControl.SetAxisVelocityRPM(1, directionDemand * MathHelper.RadiansPerSecondToRPM);
+                InitializedGyroscopeControl.SetAxisVelocityRPM(axis, directionDemand * MathHelper.RadiansPerSecondToRPM);
 
             }
             else if (angle < 360 - _DeadZone && angle > 180)
             {
                 //PitchDemand = -baseVelocity * PitchDemandSign;
                 directionDemand = MathHelper.Clamp(directionDemand - acceleration * directionDemandSign, MinRotationSpeed, MaxRotationSpeed);
-                InitializedGyroscopeControl.SetAxisVelocityRPM(1, directionDemand * MathHelper.RadiansPerSecondToRPM);
+                InitializedGyroscopeControl.SetAxisVelocityRPM(axis, directionDemand * MathHelper.RadiansPerSecondToRPM);
             }
             else
             {
                 directionDemand = 0;
-                InitializedGyroscopeControl.SetAxisVelocityRPM(1, directionDemand);
+                InitializedGyroscopeControl.SetAxisVelocityRPM(axis, directionDemand);
             }
         }
 
