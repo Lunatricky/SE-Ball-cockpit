@@ -27,8 +27,12 @@ namespace IngameScript
 
         /*TODO
          * 
-         * Set up gyro controller
-         * Set up rotor angle interpretation
+         * Fix overshoot
+         * Fix Stabilization
+         * 
+         * 
+         * 
+         * 
          * 
          * Throttle System
          * Smart thrust cut off
@@ -47,7 +51,15 @@ namespace IngameScript
         const string _RollTag = "[Ball - Roll]";
 
         const float _DeadZone = 5;
-        float acceleration = 5;
+        float acceleration = 0.05f;
+        float baseVelocity = 5;
+
+        const float YawDemandSign = 1;
+        const float PitchDemandSign = 1;
+        const float RollDemandSign = 1;
+
+        const float MaxRotationSpeed = 30;
+        const float MinRotationSpeed = -30;
 
         float YawDemand;
         float PitchDemand;
@@ -58,7 +70,7 @@ namespace IngameScript
         //IMyBlockGroup Group;
         IMyShipController Controller;
         List<IMyTerminalBlock> Gyros = new List<IMyTerminalBlock>();
-            GyroscopeControl ControlledGyros = null;
+        GyroscopeControl ControlledGyros = null;
         List<IMyTerminalBlock> Rotors = new List<IMyTerminalBlock>();
 
         //IMyTerminalBlock ShipController;
@@ -92,11 +104,22 @@ namespace IngameScript
 
             }
             GyroDemand();
+            Debug();
+        }
+        void Debug()
+        {
+            Echo($"Gyro Count: {Gyros.Count}");
+            Echo($"Yaw Rotor Angle: {YawRotor.Angle * 180 / MathHelper.Pi}");
+            Echo($"Pitch Rotor Angle: {PitchRotor.Angle * 180 / MathHelper.Pi}");
+            Echo($"Roll Rotor Angle: {RollRotor.Angle * 180 / MathHelper.Pi}");
+            Echo($"Yaw Demand: {YawDemand}");
+            Echo($"Pitch Demand: {PitchDemand}");
+            Echo($"Roll Demand: {RollDemand}");
         }
 
         void Setup()
-        {  
-            
+        {
+
             GetRotors();
             GetGyros();
             GetShipOrientation();
@@ -110,7 +133,7 @@ namespace IngameScript
             }
         }
 
-        
+
         bool PopulateLists(IMyTerminalBlock block)
         {
             if (!block.IsSameConstructAs(Me))
@@ -122,6 +145,7 @@ namespace IngameScript
             return false;
         }
 
+        //GyroscopeControl controlledGyros = null;
         //The gyros have to inherit the class and then be initialized 
         public GyroscopeControl InitializedGyroscopeControl
         {
@@ -204,7 +228,7 @@ namespace IngameScript
 
         void AddRotor(IMyTerminalBlock block, List<IMyTerminalBlock> rotors)
         {
-            if(block != null)
+            if (block != null)
             {
                 rotors.Add(block);
             }
@@ -214,7 +238,7 @@ namespace IngameScript
         #region Get Gyros
         void GetGyros()
         {
-            var group = GridTerminalSystem.GetBlockGroupWithName("_GroupName");
+            var group = GridTerminalSystem.GetBlockGroupWithName(_GroupName);
             if (group == null)
             {
                 return;
@@ -224,19 +248,19 @@ namespace IngameScript
 
         bool CollectGyros(IMyTerminalBlock block)
         {
-            if (block.CubeGrid != Me)
+            if (!block.IsSameConstructAs(Me))
                 return false;
-            
-            if (block is IMyGyro)
+
+            if (true)//block is IMyGyro
             {
                 AddGyro(block, Gyros);
             }
             return false;
         }
-    
+
         void AddGyro(IMyTerminalBlock block, List<IMyTerminalBlock> gyros)
         {
-            if(block != null)
+            if (block != null)
             {
                 gyros.Add(block);
             }
@@ -252,53 +276,32 @@ namespace IngameScript
 
             SetAxisVelocityRPM(int axis, float rpmVelocity)
             */
-            GyroYawDemand();
-            GyroPitchDemand();
-            GyroRollDemand();
+            GyroDirectionDemand(YawRotor, YawDemand, YawDemandSign);
+            GyroDirectionDemand(PitchRotor, PitchDemand, PitchDemandSign);
+            GyroDirectionDemand(RollRotor, RollDemand, RollDemandSign);
 
         }
-        public void GyroYawDemand()
-        {
-            float angle = RotorAngle();
-            if (angle > _DeadZone)
-            {
-                YawDemand = MathHelper.Clamp(YawDemand + acceleration, -30, 30);
-                InitializedGyroscopeControl.SetAxisVelocityRPM(0, YawDemand);
-            }
-            if (angle < -_DeadZone)
-            {
-                YawDemand = MathHelper.Clamp(YawDemand - acceleration, -30, 30);
-                InitializedGyroscopeControl.SetAxisVelocityRPM(0, YawDemand);
-            }
-        }
 
-        public void GyroPitchDemand()
+        public void GyroDirectionDemand(IMyMotorStator rotor, float directionDemand, float directionDemandSign)
         {
-            float angle = RotorAngle();
-            if (angle > _DeadZone)
+            float angle = RotorAngle(rotor);
+            if (angle > 0 + _DeadZone && angle < 180)
             {
-                PitchDemand = MathHelper.Clamp(PitchDemand + acceleration, -30, 30);
-                InitializedGyroscopeControl.SetAxisVelocityRPM(1, PitchDemand);
-            }
-            if (angle < -_DeadZone)
-            {
-                PitchDemand = MathHelper.Clamp(PitchDemand - acceleration, -30, 30);
-                InitializedGyroscopeControl.SetAxisVelocityRPM(1, PitchDemand);
-            }
-        }
+                //PitchDemand = baseVelocity * PitchDemandSign;
+                directionDemand = MathHelper.Clamp(directionDemand + acceleration * directionDemandSign, MinRotationSpeed, MaxRotationSpeed);
+                InitializedGyroscopeControl.SetAxisVelocityRPM(1, directionDemand * MathHelper.RadiansPerSecondToRPM);
 
-        public void GyroRollDemand()
-        {
-            float angle = RotorAngle();
-            if (angle > _DeadZone)
-            {
-                RollDemand = MathHelper.Clamp(RollDemand + acceleration, -30, 30);
-                InitializedGyroscopeControl.SetAxisVelocityRPM(2, RollDemand);
             }
-            if (angle < -_DeadZone)
+            else if (angle < 360 - _DeadZone && angle > 180)
             {
-                RollDemand = MathHelper.Clamp(RollDemand - acceleration, -30, 30);
-                InitializedGyroscopeControl.SetAxisVelocityRPM(2, RollDemand);
+                //PitchDemand = -baseVelocity * PitchDemandSign;
+                directionDemand = MathHelper.Clamp(directionDemand - acceleration * directionDemandSign, MinRotationSpeed, MaxRotationSpeed);
+                InitializedGyroscopeControl.SetAxisVelocityRPM(1, directionDemand * MathHelper.RadiansPerSecondToRPM);
+            }
+            else
+            {
+                directionDemand = 0;
+                InitializedGyroscopeControl.SetAxisVelocityRPM(1, directionDemand);
             }
         }
 
@@ -306,9 +309,9 @@ namespace IngameScript
          *  returns only the difference from 0º to the rotor current angle
          *  in case rotor is at negative degrees or above 360º
          */
-        private float RotorAngle()
+        private float RotorAngle(IMyMotorStator rotor)
         {
-            float relativeRotorAngle = Math.Abs(RollRotor.Angle / 360);
+            float relativeRotorAngle = Math.Abs(rotor.Angle / 360);
             float singleTurnAngle = (relativeRotorAngle - ((int)relativeRotorAngle)) * 360;
             float angle = singleTurnAngle * 180 / MathHelper.Pi;
             return angle;
@@ -332,8 +335,8 @@ namespace IngameScript
         }
         */
 
-            #region GyroscopeControl Class
-            //Reference: ZerothAngel
+        #region GyroscopeControl Class
+        //Reference: ZerothAngel
         public class GyroscopeControl
         {
             public const int Yaw = 0;
