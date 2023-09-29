@@ -1,6 +1,11 @@
 {
   "ExpandedNodes": [
-    "\\NewFolder"
+    "",
+    "\\New Script",
+    "\\New Script\\obj",
+    "\\New Script\\obj\\x64",
+    "\\New Script\\obj\\x64\\Debug"
   ],
+  "SelectedNode": "\\New Script\\Program.cs",
   "PreviewInSolutionExplorer": false
 }

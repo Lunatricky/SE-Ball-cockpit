@@ -1,0 +1,25 @@
+C:\Users\Morto\source\repos\SE-Ball-cockpit\New Script\obj\x64\Debug\Gimball Cockpit.csproj.AssemblyReference.cache
+C:\Users\Morto\source\repos\SE-Ball-cockpit\New Script\obj\x64\Debug\Gimball Cockpit.csproj.SuggestedBindingRedirects.cache
+C:\Users\Morto\source\repos\SE-Ball-cockpit\New Script\obj\x64\Debug\New Script.exe.config
+C:\Users\Morto\source\repos\SE-Ball-cockpit\New Script\obj\x64\Debug\Gimball Cockpit.csproj.CoreCompileInputs.cache
+C:\Users\Morto\source\repos\SE-Ball-cockpit\New Script\bin\MDK\MDK.options.props
+C:\Users\Morto\source\repos\SE-Ball-cockpit\New Script\bin\MDK\MDK.paths.props
+C:\Users\Morto\source\repos\SE-Ball-cockpit\New Script\bin\New Script.exe.config
+C:\Users\Morto\source\repos\SE-Ball-cockpit\New Script\bin\New Script.exe
+C:\Users\Morto\source\repos\SE-Ball-cockpit\New Script\bin\New Script.pdb
+C:\Users\Morto\source\repos\SE-Ball-cockpit\New Script\bin\MDKUtilities.dll
+C:\Users\Morto\source\repos\SE-Ball-cockpit\New Script\bin\VRage.Network.dll
+C:\Users\Morto\source\repos\SE-Ball-cockpit\New Script\bin\HavokWrapper.dll
+C:\Users\Morto\source\repos\SE-Ball-cockpit\New Script\bin\ProtoBuf.Net.Core.dll
+C:\Users\Morto\source\repos\SE-Ball-cockpit\New Script\bin\System.Memory.dll
+C:\Users\Morto\source\repos\SE-Ball-cockpit\New Script\bin\VRage.NativeWrapper.dll
+C:\Users\Morto\source\repos\SE-Ball-cockpit\New Script\bin\System.Buffers.dll
+C:\Users\Morto\source\repos\SE-Ball-cockpit\New Script\bin\System.Runtime.CompilerServices.Unsafe.dll
+C:\Users\Morto\source\repos\SE-Ball-cockpit\New Script\bin\SixLabors.ImageSharp.dll
+C:\Users\Morto\source\repos\SE-Ball-cockpit\New Script\bin\SixLabors.Core.dll
+C:\Users\Morto\source\repos\SE-Ball-cockpit\New Script\bin\System.Numerics.Vectors.dll
+C:\Users\Morto\source\repos\SE-Ball-cockpit\New Script\bin\SixLabors.ImageSharp.xml
+C:\Users\Morto\source\repos\SE-Ball-cockpit\New Script\bin\SixLabors.Core.xml
+C:\Users\Morto\source\repos\SE-Ball-cockpit\New Script\obj\x64\Debug\Gimball Cockpit.csproj.CopyComplete
+C:\Users\Morto\source\repos\SE-Ball-cockpit\New Script\obj\x64\Debug\New Script.exe
+C:\Users\Morto\source\repos\SE-Ball-cockpit\New Script\obj\x64\Debug\New Script.pdb
